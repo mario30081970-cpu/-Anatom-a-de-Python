@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1017">
+<meta name="description" content="Simulador interactivo: Anatomía de Python, tipado, indentación y pseudocódigo. Software I - 3er año.">
+<title>Anatomía de Python · Simulador Interactivo</title>
+<style>
+  :root{
+    --bg:#0b1017;
+    --bg2:#101823;
+    --surface:#17222f;
+    --surface2:#1e2c3c;
+    --border:#2a3b4f;
+    --border-soft:#22303f;
+    --text:#e7eef7;
+    --muted:#8fa5bc;
+    --py:#38bdf8;
+    --py-soft:rgba(56,189,248,.13);
+    --html:#f59e0b;
+    --html-soft:rgba(245,158,11,.13);
+    --ok:#22c55e;
+    --ok-soft:rgba(34,197,94,.14);
+    --err:#ef4444;
+    --err-soft:rgba(239,68,68,.14);
+    --radius:14px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(56,189,248,.08), transparent 60%),
+      radial-gradient(700px 420px at 100% 5%, rgba(245,158,11,.06), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    min-height:100dvh;
+    overflow-x:hidden;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(11,16,23,.92);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border-soft);
+    padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  .logo{
+    width:34px;height:34px;flex:0 0 34px;border-radius:9px;
+    background:linear-gradient(135deg,#0e4a63,#153b52);
+    border:1px solid #1f5f7d;
+    display:grid;place-items:center;font-size:17px;
+  }
+  .brand h1{font-size:14px;margin:0;font-weight:700;letter-spacing:.2px;}
+  .brand .sub{font-size:10.5px;margin:1px 0 0;color:var(--muted);font-family:var(--mono);letter-spacing:.4px;text-transform:uppercase;}
+
+  .progress-wrap{display:flex;align-items:center;gap:9px;}
+  .progress-bar{
+    flex:1;height:6px;background:#16202c;border-radius:99px;overflow:hidden;
+    border:1px solid var(--border-soft);
+  }
+  .progress-bar > i{
+    display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,var(--py),#7dd3fc);
+    border-radius:99px;
+    transition:width .45s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 0 10px rgba(56,189,248,.5);
+  }
+  #progressLabel{
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    min-width:34px;text-align:right;
+  }
+
+  /* ---------- LAYOUT ---------- */
+  main{padding:16px 14px 40px;max-width:640px;margin:0 auto;}
+  .screen{display:none;animation:fade .32s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  /* ---------- CARDS ---------- */
+  .card{
+    background:linear-gradient(180deg,var(--surface),var(--bg2));
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card-tight{padding:13px;}
+
+  .tag{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:10.5px;font-weight:700;
+    letter-spacing:.8px;text-transform:uppercase;
+    padding:4px 9px;border-radius:99px;
+    border:1px solid var(--border);
+    background:#131d28;color:var(--muted);
+    margin-bottom:10px;
+  }
+  .tag.py{color:var(--py);border-color:#1f5f7d;background:var(--py-soft);}
+  .tag.html{color:var(--html);border-color:#6b4a0a;background:var(--html-soft);}
+
+  h2.title{font-size:19px;margin:0 0 8px;line-height:1.28;letter-spacing:-.2px;}
+  h3.sub{font-size:14.5px;margin:0 0 8px;font-weight:700;}
+  p.lead{font-size:13.5px;color:var(--muted);margin:0 0 14px;line-height:1.55;}
+  p.lead b{color:var(--text);font-weight:600;}
+
+  .hint{
+    font-size:12px;color:var(--muted);font-family:var(--mono);
+    background:#0f1821;border:1px dashed var(--border);
+    border-radius:10px;padding:9px 11px;margin:0 0 12px;line-height:1.5;
+  }
+
+  /* ---------- FORM ---------- */
+  label.field{display:block;margin-bottom:14px;}
+  label.field span{
+    display:block;font-family:var(--mono);font-size:11px;font-weight:700;
+    letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+  }
+  input[type=text], textarea{
+    width:100%;
+    background:#0d151e;
+    border:1px solid var(--border);
+    border-radius:11px;
+    color:var(--text);
+    font-size:16px;
+    font-family:inherit;
+    padding:14px 13px;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+    min-height:52px;
+  }
+  input[type=text]:focus, textarea:focus{
+    border-color:var(--py);
+    box-shadow:0 0 0 3px rgba(56,189,248,.15);
+  }
+  textarea{min-height:88px;resize:vertical;font-size:15px;line-height:1.5;}
+
+  /* ---------- BUTTONS ---------- */
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;min-height:54px;padding:14px 18px;
+    border-radius:12px;font-size:16px;font-weight:700;
+    letter-spacing:.2px;
+    transition:transform .12s, opacity .2s, background .2s;
+    border:1px solid transparent;
+    user-select:none;
+  }
+  .btn:active{transform:scale(.975);}
+  .btn:disabled{opacity:.38;cursor:not-allowed;transform:none;}
+  .btn-primary{
+    background:linear-gradient(135deg,#0ea5e9,#0284c7);
+    color:#031018;border-color:#38bdf8;
+    box-shadow:0 6px 20px -8px rgba(56,189,248,.7);
+  }
+  .btn-html{
+    background:linear-gradient(135deg,#f59e0b,#d97706);
+    color:#1a1204;border-color:#fbbf24;
+    box-shadow:0 6px 20px -8px rgba(245,158,11,.6);
+  }
+  .btn-ghost{
+    background:#141e29;border-color:var(--border);color:var(--text);
+  }
+  .btn-sm{min-height:46px;font-size:14px;padding:11px 14px;}
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{flex:1;}
+
+  /* ---------- RETO 1: COMPARATIVA ---------- */
+  .compare{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;}
+  .panel{
+    background:#0d151e;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 12px;background:#131d28;
+    border-bottom:1px solid var(--border);
+    font-family:var(--mono);font-size:10.5px;font-weight:700;
+    letter-spacing:.9px;text-transform:uppercase;
+  }
+  .panel-head.pseudo{color:#c084fc;}
+  .panel-head.pyhead{color:var(--py);}
+  .panel-body{padding:11px 12px;}
+  .mono{font-family:var(--mono);font-size:12px;line-height:1.75;}
+  .pseudo-line{color:#c9b6e8;white-space:pre-wrap;}
+  .pseudo-line.kw{color:#f0abfc;font-weight:700;}
+  .pseudo-line.fin{color:#f87171;font-weight:700;}
+
+  /* ---------- RETO 1: WORKSPACE ---------- */
+  .workspace{
+    min-height:120px;
+    background:#0a1219;
+    border:1.5px dashed var(--border);
+    border-radius:12px;
+    padding:9px;
+    margin-bottom:12px;
+    transition:border-color .2s;
+  }
+  .workspace.full{border-style:solid;border-color:#2b4a63;}
+  .ws-empty{
+    color:#3f5568;font-family:var(--mono);font-size:12px;
+    text-align:center;padding:32px 10px;line-height:1.6;
+  }
+  .placed{
+    display:flex;align-items:center;gap:6px;
+    background:#101a24;border:1px solid #22303f;
+    border-radius:9px;padding:5px 6px;margin-bottom:5px;
+    animation:pop .2s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+  .placed.ok{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.07);}
+  .placed.bad{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.07);}
+  .placed .code{
+    flex:1;font-family:var(--mono);font-size:11.5px;line-height:1.45;
+    white-space:pre-wrap;word-break:break-word;color:#dbe9f7;
+    padding:3px 0;
+  }
+  .placed .indent-guide{
+    border-left:2px solid #2f4a61;align-self:stretch;margin-left:2px;
+  }
+  .mini-btn{
+    flex:0 0 36px;height:36px;border-radius:8px;
+    display:grid;place-items:center;
+    font-size:14px;font-family:var(--mono);font-weight:700;
+    background:#17222f;border:1px solid var(--border);color:var(--muted);
+    transition:background .15s,color .15s;
+  }
+  .mini-btn:active{transform:scale(.92);}
+  .mini-btn.on{background:rgba(56,189,248,.2);border-color:var(--py);color:var(--py);}
+  .mini-btn.del{color:#7c3b3b;}
+  .mini-btn.del:active{background:var(--err-soft);}
+
+  .pool{
+    display:flex;flex-direction:column;gap:6px;
+    background:#0c141c;border:1px solid var(--border-soft);
+    border-radius:12px;padding:9px;min-height:60px;
+  }
+  .pool-empty{color:#3f5568;font-family:var(--mono);font-size:11.5px;text-align:center;padding:16px 8px;}
+  .pool-item{
+    display:block;width:100%;text-align:left;
+    background:#16212d;border:1px solid var(--border);
+    border-radius:9px;padding:11px 11px;
+    font-family:var(--mono);font-size:11.5px;line-height:1.45;
+    color:#cfe2f2;white-space:pre-wrap;word-break:break-word;
+    transition:background .15s, transform .1s, border-color .15s;
+  }
+  .pool-item:active{transform:scale(.985);background:#1d2b3a;border-color:var(--py);}
+
+  /* ---------- RETO 2 ---------- */
+  .progress-dots{display:flex;gap:5px;justify-content:center;margin-bottom:14px;}
+  .dot{width:8px;height:8px;border-radius:99px;background:#22303f;transition:all .3s;}
+  .dot.done{background:var(--ok);}
+  .dot.miss{background:var(--err);}
+  .dot.now{background:var(--py);transform:scale(1.35);}
+
+  .quiz-card{
+    background:linear-gradient(160deg,#152130,#0e1721);
+    border:1px solid var(--border);
+    border-radius:14px;padding:20px 16px;text-align:center;
+    margin-bottom:16px;min-height:120px;
+    display:flex;flex-direction:column;justify-content:center;gap:9px;
+    animation:fade .3s ease;
+  }
+  .quiz-card .q-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .quiz-card .q-text{font-size:17px;font-weight:600;line-height:1.4;color:#f0f7ff;}
+
+  .feedback{
+    margin-top:12px;border-radius:11px;padding:12px 13px;
+    font-size:13.5px;line-height:1.5;display:none;
+    animation:fade .25s ease;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:var(--ok-soft);border:1px solid rgba(34,197,94,.4);color:#bbf7d0;}
+  .feedback.bad{background:var(--err-soft);border:1px solid rgba(239,68,68,.4);color:#fecaca;}
+  .feedback b{font-weight:700;}
+
+  /* ---------- RETO 3 ---------- */
+  .time-compare{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px;
+  }
+  .time-box{
+    border-radius:11px;padding:12px 10px;text-align:center;
+    border:1px solid var(--border);background:#0d151e;
+  }
+  .time-box.man{border-color:#4a3a2a;background:rgba(245,158,11,.07);}
+  .time-box.py{border-color:#1f5f7d;background:var(--py-soft);}
+  .time-box .tb-label{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.8px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+  }
+  .time-box .tb-value{font-size:17px;font-weight:800;line-height:1.15;}
+  .time-box.man .tb-value{color:#fbbf24;}
+  .time-box.py .tb-value{color:#7dd3fc;}
+
+  .bar-track{
+    height:9px;border-radius:99px;background:#16202c;overflow:hidden;
+    margin-top:9px;border:1px solid var(--border-soft);
+  }
+  .bar-track > i{
+    display:block;height:100%;width:0;border-radius:99px;
+    transition:width .8s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-track > i.man{background:linear-gradient(90deg,#b45309,#f59e0b);}
+  .bar-track > i.py{background:linear-gradient(90deg,#0284c7,#38bdf8);}
+
+  /* ---------- RESULTS ---------- */
+  .score-hero{
+    text-align:center;padding:26px 16px;
+    background:
+      radial-gradient(400px 200px at 50% 0%, rgba(56,189,248,.14), transparent 70%),
+      linear-gradient(180deg,var(--surface),var(--bg2));
+    border:1px solid var(--border);border-radius:16px;margin-bottom:14px;
+  }
+  .score-num{
+    font-family:var(--mono);font-size:52px;font-weight:800;line-height:1;
+    background:linear-gradient(135deg,#7dd3fc,#0ea5e9);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:4px;
+  }
+  .score-num small{font-size:20px;color:var(--muted);-webkit-text-fill-color:var(--muted);}
+  .score-lbl{font-family:var(--mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+  .score-msg{font-size:14px;margin-top:12px;color:#cfe2f2;line-height:1.5;}
+
+  .breakdown{list-style:none;padding:0;margin:0;}
+  .breakdown li{
+    display:flex;align-items:center;gap:11px;
+    padding:11px 0;border-bottom:1px solid var(--border-soft);
+    font-size:13.5px;
+  }
+  .breakdown li:last-child{border-bottom:none;}
+  .bd-icon{
+    width:30px;height:30px;flex:0 0 30px;border-radius:8px;
+    display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:800;
+    background:#16212d;border:1px solid var(--border);color:var(--muted);
+  }
+  .bd-icon.ok{background:var(--ok-soft);border-color:rgba(34,197,94,.4);color:#4ade80;}
+  .bd-icon.mid{background:rgba(245,158,11,.13);border-color:rgba(245,158,11,.4);color:#fbbf24;}
+  .bd-icon.bad{background:var(--err-soft);border-color:rgba(239,68,68,.4);color:#f87171;}
+  .bd-text{flex:1;}
+  .bd-text b{display:block;font-size:13.5px;font-weight:600;}
+  .bd-text span{font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  .bd-pts{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--py);}
+
+  .learn-list{list-style:none;padding:0;margin:0;font-size:13.5px;line-height:1.6;}
+  .learn-list li{padding:7px 0 7px 24px;position:relative;color:#cfe2f2;border-bottom:1px solid var(--border-soft);}
+  .learn-list li:last-child{border-bottom:none;}
+  .learn-list li::before{
+    content:"▸";position:absolute;left:4px;top:7px;color:var(--py);font-weight:800;
+  }
+  .learn-list b{color:#fff;font-weight:600;}
+
+  .download-box{
+    background:linear-gradient(160deg,rgba(56,189,248,.09),rgba(14,165,233,.03));
+    border:1px solid #1f5f7d;border-radius:14px;padding:15px;margin-top:4px;
+  }
+  .download-box .note{
+    font-size:11.5px;color:var(--muted);font-family:var(--mono);
+    margin-top:11px;line-height:1.6;text-align:center;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,140%);
+    background:#0f2a1c;border:1px solid #22c55e;color:#bbf7d0;
+    padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:600;
+    z-index:999;transition:transform .35s cubic-bezier(.4,0,.2,1);
+    max-width:90vw;text-align:center;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);
+  }
+  .toast.show{transform:translate(-50%,0);}
+
+  .footer-note{
+    text-align:center;font-family:var(--mono);font-size:10px;
+    color:#3f5568;letter-spacing:.5px;margin-top:22px;line-height:1.7;
+  }
+
+  /* ---------- DESKTOP ---------- */
+  @media (min-width:600px){
+    main{padding:22px 18px 50px;}
+    .compare{grid-template-columns:1fr 1fr;}
+    h2.title{font-size:21px;}
+    .brand h1{font-size:15px;}
+  }
+  @media (min-width:900px){
+    .compare{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">🐍</div>
+    <div>
+      <h1>Anatomía de Python</h1>
+      <p class="sub">Software I · 3° año</p>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><i id="progressFill"></i></div>
+    <span id="progressLabel">0%</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= SCREEN: REGISTRO ================= -->
+  <section id="screen-registro" class="screen active">
+    <div class="card">
+      <span class="tag">◆ Inicio</span>
+      <h2 class="title">Tu lógica ya funciona.<br>Ahora vamos a darle un lenguaje real.</h2>
+      <p class="lead">
+        El pseudocódigo fue tu entrenamiento. En este simulador vas a traducir esa lógica
+        a <b>Python</b>, aplicar la regla de los <b>4 espacios</b> y descubrir por qué
+        Python es el <b>cerebro</b> y HTML el <b>esqueleto</b> de la web.
+      </p>
+
+      <div class="hint">
+        3 retos · 22 decisiones · 1 informe descargable.<br>
+        Completá tus datos para comenzar.
+      </div>
+
+      <label class="field">
+        <span>Apellido y Nombre</span>
+        <input type="text" id="inpNombre" placeholder="Ej: Gómez, María Sol" autocomplete="name" enterkeyhint="next">
+      </label>
+
+      <label class="field">
+        <span>Curso / División</span>
+        <input type="text" id="inpCurso" placeholder="Ej: 3° B" autocomplete="off" enterkeyhint="done">
+      </label>
+
+      <button class="btn btn-primary" id="btnComenzar">Comenzar entrenamiento ▸</button>
+    </div>
+
+    <p class="footer-note">
+      Basado en el material «Anatomía de Python»<br>
+      Tipado dinámico · Indentación obligatoria · Multiparadigma
+    </p>
+  </section>
+
+  <!-- ================= SCREEN: RETO 1 ================= -->
+  <section id="screen-reto1" class="screen">
+    <div class="card">
+      <span class="tag">Reto 01 / 03</span>
+      <h2 class="title">Estructura e Indentación</h2>
+      <p class="lead">
+        Python eliminó <b>FinSi</b> y <b>FinMientras</b>. En su lugar usa
+        <b>4 espacios de indentación</b> que definen exactamente dónde empieza y termina
+        cada bloque lógico.
+      </p>
+
+      <div class="compare">
+        <div class="panel">
+          <div class="panel-head pseudo"><span>Pseudocódigo</span><span>▤</span></div>
+          <div class="panel-body mono">
+            <div class="pseudo-line kw">INICIO</div>
+            <div class="pseudo-line">  Leer valor1</div>
+            <div class="pseudo-line">  Leer valor2</div>
+            <div class="pseudo-line kw">  Si valor1 &gt; valor2 entonces</div>
+            <div class="pseudo-line">      Resultado = valor1 - valor2</div>
+            <div class="pseudo-line">      Mostrar "La diferencia es: " + Resultado</div>
+            <div class="pseudo-line kw">  Sino</div>
+            <div class="pseudo-line">      Resultado = valor2 - valor1</div>
+            <div class="pseudo-line">      Mostrar "La diferencia es: " + Resultado</div>
+            <div class="pseudo-line fin">  FinSi</div>
+            <div class="pseudo-line kw">FIN</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head pyhead"><span>Tu código Python</span><span>▶</span></div>
+          <div class="panel-body">
+            <div class="hint" style="margin-bottom:10px;">
+              Tocá <b>⇥</b> en cada línea para aplicar los 4 espacios
+              donde corresponda. Compará con el pseudocódigo.
+            </div>
+            <div class="workspace" id="workspace1">
+              <div class="ws-empty" id="wsEmpty1">▸ Tocá las líneas de abajo<br>en el orden correcto</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pool" id="pool1"></div>
+
+      <div class="feedback" id="fb1"></div>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-ghost btn-sm" id="btnReset1" style="flex:0 0 42%;">↺ Reiniciar</button>
+        <button class="btn btn-primary btn-sm" id="btnCheck1" disabled>Verificar ✓</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN: RETO 2 ================= -->
+  <section id="screen-reto2" class="screen">
+    <div class="card">
+      <span class="tag">Reto 02 / 03</span>
+      <h2 class="title">Cerebro vs. Esqueleto</h2>
+      <p class="lead">
+        En el desarrollo web real no compiten: se complementan. Clasificá cada concepto
+        según corresponda al rol de <b>Python</b> (backend / cerebro) o
+        <b>HTML</b> (frontend / esqueleto).
+      </p>
+
+      <div class="progress-dots" id="dots2"></div>
+
+      <div class="quiz-card" id="quiz2">
+        <div class="q-label" id="qLabel2">Concepto</div>
+        <div class="q-text" id="qText2">—</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPy2">
+          🐍 Python
+          <small style="display:block;font-size:10px;font-weight:500;opacity:.75;">Cerebro · Lógica</small>
+        </button>
+        <button class="btn btn-html" id="btnHtml2">
+          📄 HTML
+          <small style="display:block;font-size:10px;font-weight:500;opacity:.75;">Esqueleto · Estructura</small>
+        </button>
+      </div>
+
+      <div class="feedback" id="fb2"></div>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN: RETO 3 ================= -->
+  <section id="screen-reto3" class="screen">
+    <div class="card">
+      <span class="tag">Reto 03 / 03</span>
+      <h2 class="title">Automatización vs. Modo Manual</h2>
+      <p class="lead">
+        Python es la herramienta preferida para crear <b>scripts</b>: pequeños programas que
+        ejecutan tareas repetitivas al instante. Pero no todo se automatiza.
+        <b>Elegí la estrategia más eficiente</b> en cada caso.
+      </p>
+
+      <div class="progress-dots" id="dots3"></div>
+
+      <div class="quiz-card" id="quiz3">
+        <div class="q-label" id="qLabel3">Escenario</div>
+        <div class="q-text" id="qText3">—</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-html" id="btnMan3">
+          ✋ Modo Manual
+          <small style="display:block;font-size:10px;font-weight:500;opacity:.75;">Clic por clic</small>
+        </button>
+        <button class="btn btn-primary" id="btnPy3">
+          ⚙️ Modo Python
+          <small style="display:block;font-size:10px;font-weight:500;opacity:.75;">Script automático</small>
+        </button>
+      </div>
+
+      <div class="feedback" id="fb3"></div>
+
+      <div id="timeWrap3" style="display:none;">
+        <div class="time-compare">
+          <div class="time-box man">
+            <div class="tb-label">Modo Manual</div>
+            <div class="tb-value" id="tMan3">—</div>
+            <div class="bar-track"><i class="man" id="bMan3"></i></div>
+          </div>
+          <div class="time-box py">
+            <div class="tb-label">Modo Python</div>
+            <div class="tb-value" id="tPy3">—</div>
+            <div class="bar-track"><i class="py" id="bPy3"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-sm" id="btnNext3" style="display:none;margin-top:14px;">
+        Siguiente escenario ▸
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN: RESULTADOS ================= -->
+  <section id="screen-resultados" class="screen">
+    <div class="score-hero">
+      <div class="score-num" id="scoreNum">0<small>/100</small></div>
+      <div class="score-lbl">Puntaje Final</div>
+      <div class="score-msg" id="scoreMsg">—</div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub" style="margin-bottom:12px;">📊 Desglose por reto</h3>
+      <ul class="breakdown" id="breakdown"></ul>
+    </div>
+
+    <div class="card">
+      <h3 class="sub" style="margin-bottom:10px;">🧠 Lo que consolidaste</h3>
+      <ul class="learn-list">
+        <li><b>Continuidad:</b> el pseudocódigo se traduce directamente; tu lógica ya es válida.</li>
+        <li><b>Estructura:</b> la indentación obligatoria reemplaza las palabras de cierre (FinSi).</li>
+        <li><b>Legibilidad:</b> tipado dinámico y diseño centrado en la lectura humana.</li>
+        <li><b>Versatilidad:</b> multiparadigma (estructurada, objetos, funcional).</li>
+        <li><b>Industria:</b> domina el backend (Instagram, Spotify) y la automatización.</li>
+        <li><b>Regla de oro:</b> Python (cerebro/lógica) ≠ HTML (esqueleto/visual).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 class="sub">✍️ Conclusión personal</h3>
+      <p class="lead" style="margin-bottom:10px;">
+        Escribí en una línea qué te llevás de este simulador.
+      </p>
+      <textarea id="inpConclusion" placeholder="Ej: Entendí que la indentación en Python reemplaza al FinSi y que el backend piensa mientras el frontend muestra..." maxlength="260"></textarea>
+      <div style="text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:5px;">
+        <span id="charCount">0</span>/260
+      </div>
+    </div>
+
+    <div class="download-box">
+      <button class="btn btn-primary" id="btnDownload">
+        ⬇ Descargar Informe Formato .doc
+      </button>
+      <div class="note">
+        El archivo se guarda en la carpeta <b>Descargas</b> de tu celular.<br>
+        Luego subilo a Google Classroom desde la app.
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-ghost btn-sm" id="btnRestart">↺ Volver a empezar</button>
+    </div>
+
+    <p class="footer-note">
+      «Python es el segundo mejor lenguaje para todo...<br>excepto para lo que ya hace el primero.»<br>
+      — Python Community
+    </p>
+  </section>
+
+</main>
+
+<div class="toast" id="toast">✔ Informe descargado</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     ESTADO GLOBAL
+     ========================================================= */
+  const state = {
+    nombre: "",
+    curso: "",
+    r1: { correct: 0, total: 8, pts: 0 },
+    r2: { correct: 0, total: 8, pts: 0 },
+    r3: { correct: 0, total: 6, pts: 0 },
+    conclusion: ""
+  };
+
+  const PESO_R1 = 40;
+  const PESO_R2 = 30;
+  const PESO_R3 = 30;
+
+  /* =========================================================
+     UTILIDADES
+     ========================================================= */
+  const $ = (id) => document.getElementById(id);
+
+  function esc(str){
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function setProgress(pct){
+    $("progressFill").style.width = pct + "%";
+    $("progressLabel").textContent = pct + "%";
+  }
+
+  function goTo(id){
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    const el = $(id);
+    if(el) el.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  }
+
+  function showToast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  /* =========================================================
+     REGISTRO
+     ========================================================= */
+  $("btnComenzar").addEventListener("click", function(){
+    const nombre = $("inpNombre").value.trim();
+    const curso  = $("inpCurso").value.trim();
+
+    if(nombre.length < 3){
+      $("inpNombre").focus();
+      showToast("⚠ Ingresá tu Apellido y Nombre");
+      return;
+    }
+    if(curso.length < 1){
+      $("inpCurso").focus();
+      showToast("⚠ Ingresá tu Curso / División");
+      return;
+    }
+
+    state.nombre = nombre;
+    state.curso  = curso;
+
+    setProgress(15);
+    initReto1();
+    goTo("screen-reto1");
+  });
+
+  /* =========================================================
+     RETO 1 · ESTRUCTURA E INDENTACIÓN
+     ========================================================= */
+  const SOLUTION1 = [
+    { text: 'valor1 = float(input("Valor 1: "))', indent: 0 },
+    { text: 'valor2 = float(input("Valor 2: "))', indent: 0 },
+    { text: 'if valor1 > valor2:',                    indent: 0 },
+    { text: 'resultado = valor1 - valor2',            indent: 1 },
+    { text: 'print(f"Diferencia: {resultado}")',      indent: 1 },
+    { text: 'else:',                                  indent: 0 },
+    { text: 'resultado = valor2 - valor1',            indent: 1 },
+    { text: 'print(f"Diferencia: {resultado}")',      indent: 1 }
+  ];
+
+  let pool1 = [];
+  let placed1 = [];
+  let checked1 = false;
+
+  function initReto1(){
+    // Creamos ítems con id único (permite líneas de texto duplicado)
+    pool1 = shuffle(SOLUTION1.map((l, i) => ({
+      id: "L" + i,
+      text: l.text,
+      indent: 0
+    })));
+    placed1 = [];
+    checked1 = false;
+    $("fb1").className = "feedback";
+    $("fb1").innerHTML = "";
+    renderReto1();
+  }
+
+  function renderReto1(){
+    /* --- Pool --- */
+    const pool = $("pool1");
+    pool.innerHTML = "";
+
+    if(pool1.length === 0){
+      const e = document.createElement("div");
+      e.className = "pool-empty";
+      e.textContent = "▸ Sin líneas pendientes";
+      pool.appendChild(e);
+    } else {
+      pool1.forEach(item => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "pool-item";
+        b.textContent = item.text;
+        b.addEventListener("click", () => {
+          if(checked1) return;
+          placeLine1(item.id);
+        });
+        pool.appendChild(b);
+      });
+    }
+
+    /* --- Workspace --- */
+    const ws = $("workspace1");
+    ws.innerHTML = "";
+    ws.classList.toggle("full", placed1.length === SOLUTION1.length);
+
+    if(placed1.length === 0){
+      const e = document.createElement("div");
+      e.className = "ws-empty";
+      e.id = "wsEmpty1";
+      e.innerHTML = "▸ Tocá las líneas de abajo<br>en el orden correcto";
+      ws.appendChild(e);
+    } else {
+      placed1.forEach((item, idx) => {
+        const row = document.createElement("div");
+        row.className = "placed";
+
+        if(checked1){
+          const sol = SOLUTION1[idx];
+          const ok = (item.text === sol.text && item.indent === sol.indent);
+          row.classList.add(ok ? "ok" : "bad");
+        }
+
+        // Botón indentación
+        const bInd = document.createElement("button");
+        bInd.type = "button";
+        bInd.className = "mini-btn" + (item.indent === 1 ? " on" : "");
+        bInd.textContent = "⇥";
+        bInd.title = "Alternar indentación (4 espacios)";
+        bInd.addEventListener("click", () => {
+          if(checked1) return;
+          item.indent = item.indent === 0 ? 1 : 0;
+          renderReto1();
+        });
+
+        // Guía visual de indentación + código
+        const code = document.createElement("div");
+        code.className = "code";
+        if(item.indent === 1){
+          code.innerHTML = '<span class="indent-guide"></span>' +
+                           '<span style="padding-left:14px;">' + esc(item.text) + '</span>';
+        } else {
+          code.textContent = item.text;
+        }
+
+        // Botón eliminar
+        const bDel = document.createElement("button");
+        bDel.type = "button";
+        bDel.className = "mini-btn del";
+        bDel.textContent = "✕";
+        bDel.title = "Quitar línea";
+        bDel.addEventListener("click", () => {
+          if(checked1) return;
+          removeLine1(idx);
+        });
+
+        row.appendChild(bInd);
+        row.appendChild(code);
+        row.appendChild(bDel);
+        ws.appendChild(row);
+      });
+    }
+
+    // Estado del botón verificar
+    $("btnCheck1").disabled = (placed1.length !== SOLUTION1.length) || checked1;
+  }
+
+  function placeLine1(id){
+    const i = pool1.findIndex(x => x.id === id);
+    if(i === -1) return;
+    const item = pool1.splice(i, 1)[0];
+    placed1.push(item);
+    renderReto1();
+  }
+
+  function removeLine1(index){
+    const item = placed1.splice(index, 1)[0];
+    pool1.push(item);
+    renderReto1();
+  }
+
+  $("btnReset1").addEventListener("click", () => {
+    initReto1();
+  });
+
+  $("btnCheck1").addEventListener("click", () => {
+    if(placed1.length !== SOLUTION1.length) return;
+
+    let correct = 0;
+    placed1.forEach((item, idx) => {
+      const sol = SOLUTION1[idx];
+      if(item.text === sol.text && item.indent === sol.indent) correct++;
+    });
+
+    checked1 = true;
+    state.r1.correct = correct;
+    state.r1.pts = Math.round((correct / SOLUTION1.length) * PESO_R1);
+
+    renderReto1();
+
+    const fb = $("fb1");
+    const pct = Math.round((correct / SOLUTION1.length) * 100);
+
+    if(correct === SOLUTION1.length){
+      fb.className = "feedback good show";
+      fb.innerHTML = "<b>✔ ¡Perfecto!</b> Ordenaste las 8 líneas y aplicaste los 4 espacios " +
+                     "exactamente donde el pseudocódigo marcaba el bloque <b>Si / Sino</b>. " +
+                     "Las palabras <b>FinSi</b> ya no son necesarias: la indentación las reemplaza.";
+    } else if(correct >= 5){
+      fb.className = "feedback good show";
+      fb.innerHTML = "<b>◐ Muy bien: " + correct + "/8 (" + pct + "%)</b><br>" +
+                     "Revisá las líneas marcadas en rojo. Recordá: las instrucciones que están " +
+                     "<b>dentro</b> del <b>if</b> o del <b>else</b> llevan 4 espacios; las que están " +
+                     "al mismo nivel que el <b>if</b>, no.";
+    } else {
+      fb.className = "feedback bad show";
+      fb.innerHTML = "<b>✕ Resultado: " + correct + "/8 (" + pct + "%)</b><br>" +
+                     "Compará de nuevo con el pseudocódigo: <b>INICIO</b> y <b>FIN</b> desaparecen, " +
+                     "<b>FinSi</b> se reemplaza por volver al nivel 0, y cada bloque interno " +
+                     "se marca con <b>4 espacios</b>.";
+    }
+
+    // Botón continuar
+    const btnNext = document.createElement("button");
+    btnNext.className = "btn btn-primary btn-sm";
+    btnNext.style.marginTop = "14px";
+    btnNext.textContent = "Continuar al Reto 02 ▸";
+    btnNext.addEventListener("click", () => {
+      setProgress(45);
+      initReto2();
+      goTo("screen-reto2");
+    });
+    fb.appendChild(document.createElement("div")).appendChild(btnNext);
+
+    setProgress(40);
+  });
+
+  /* =========================================================
+     RETO 2 · PYTHON vs HTML
+     ========================================================= */
+  const CARDS2 = [
+    { text: "Procesa datos y toma decisiones lógicas",        ans: "PY",
+      why: "Python es el cerebro: evalúa condiciones con if/else y calcula resultados." },
+    { text: "Define la estructura visual con etiquetas",      ans: "HTML",
+      why: "HTML es un lenguaje de marcado: organiza títulos, párrafos e imágenes." },
+    { text: "Trabaja en el backend (servidor)",               ans: "PY",
+      why: "Python opera en la sombra: consulta bases de datos, procesa pagos, genera respuestas." },
+    { text: "Es el esqueleto de la página web",               ans: "HTML",
+      why: "HTML define la presentación estática que verá el usuario en el navegador." },
+    { text: "Calcula totales y aplica descuentos",            ans: "PY",
+      why: "Toda operación aritmética o lógica es territorio de Python." },
+    { text: "Es un lenguaje de marcado, no de programación",  ans: "HTML",
+      why: "HTML no toma decisiones ni procesa datos: solo estructura contenido." },
+    { text: "Gestiona bases de datos y pagos en el servidor", ans: "PY",
+      why: "El backend en Python administra la infraestructura de datos." },
+    { text: "Se muestra en el frontend (navegador)",          ans: "HTML",
+      why: "El frontend recibe los datos del backend y los presenta visualmente." }
+  ];
+
+  let deck2 = [];
+  let idx2 = 0;
+  let correct2 = 0;
+  let locked2 = false;
+
+  function initReto2(){
+    deck2 = shuffle(CARDS2);
+    idx2 = 0;
+    correct2 = 0;
+    locked2 = false;
+    renderDots2();
+    renderCard2();
+    $("fb2").className = "feedback";
+    $("fb2").innerHTML = "";
+    $("btnPy2").disabled = false;
+    $("btnHtml2").disabled = false;
+  }
+
+  function renderDots2(){
+    const d = $("dots2");
+    d.innerHTML = "";
+    for(let i = 0; i < CARDS2.length; i++){
+      const s = document.createElement("span");
+      s.className = "dot";
+      if(i < idx2){
+        s.classList.add(deck2[i] && deck2[i]._ok ? "done" : "miss");
+      } else if(i === idx2){
+        s.classList.add("now");
+      }
+      d.appendChild(s);
+    }
+  }
+
+  function renderCard2(){
+    const c = deck2[idx2];
+    $("qLabel2").textContent = "Concepto " + (idx2 + 1) + " de " + deck2.length;
+    $("qText2").textContent = c.text;
+    $("quiz2").style.animation = "none";
+    void $("quiz2").offsetWidth;
+    $("quiz2").style.animation = "fade .3s ease";
+  }
+
+  function answer2(choice){
+    if(locked2) return;
+    locked2 = true;
+    $("btnPy2").disabled = true;
+    $("btnHtml2").disabled = true;
+
+    const c = deck2[idx2];
+    const ok = (c.ans === choice);
+    c._ok = ok;
+    if(ok) correct2++;
+
+    const fb = $("fb2");
+    if(ok){
+      fb.className = "feedback good show";
+      fb.innerHTML = "<b>✔ Correcto.</b> " + c.why;
+    } else {
+      fb.className = "feedback bad show";
+      fb.innerHTML = "<b>✕ Era " + (c.ans === "PY" ? "Python" : "HTML") + ".</b> " + c.why;
+    }
+
+    renderDots2();
+
+    setTimeout(() => {
+      idx2++;
+      if(idx2 < deck2.length){
+        locked2 = false;
+        $("btnPy2").disabled = false;
+        $("btnHtml2").disabled = false;
+        fb.className = "feedback";
+        fb.innerHTML = "";
+        renderDots2();
+        renderCard2();
+      } else {
+        finishReto2();
+      }
+    }, 1150);
+  }
+
+  $("btnPy2").addEventListener("click", () => answer2("PY"));
+  $("btnHtml2").addEventListener("click", () => answer2("HTML"));
+
+  function finishReto2(){
+    state.r2.correct = correct2;
+    state.r2.pts = Math.round((correct2 / CARDS2.length) * PESO_R2);
+
+    const fb = $("fb2");
+    fb.className = "feedback " + (correct2 >= 6 ? "good" : "bad") + " show";
+    fb.innerHTML = "<b>Reto 02 completado: " + correct2 + "/" + CARDS2.length + "</b><br>" +
+      "Python piensa, calcula y decide (backend). HTML estructura, ordena y muestra " +
+      "(frontend). En el ciclo de petición HTTP trabajan juntos: el navegador pide, " +
+      "el servidor responde con datos y lógica.";
+
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary btn-sm";
+    btn.style.marginTop = "14px";
+    btn.textContent = "Continuar al Reto 03 ▸";
+    btn.addEventListener("click", () => {
+      setProgress(75);
+      initReto3();
+      goTo("screen-reto3");
+    });
+    fb.appendChild(document.createElement("div")).appendChild(btn);
+
+    setProgress(70);
+  }
+
+  /* =========================================================
+     RETO 3 · AUTOMATIZACIÓN vs MANUAL
+     ========================================================= */
+  const SCEN3 = [
+    {
+      text: "Renombrar 200 archivos de fotos con un patrón fijo",
+      best: "PY",
+      man: "≈ 3 horas", py: "2 segundos",
+      manPct: 100, pyPct: 4,
+      why: "Tarea repetitiva y masiva: un script de Python la resuelve al instante."
+    },
+    {
+      text: "Enviar un único mensaje a un compañero",
+      best: "MAN",
+      man: "15 segundos", py: "≈ 25 minutos",
+      manPct: 6, pyPct: 100,
+      why: "Escribir y depurar un script para una sola acción es sobre-ingeniería. Manual gana."
+    },
+    {
+      text: "Extraer precios de 50 páginas web (web scraping)",
+      best: "PY",
+      man: "≈ 6 horas", py: "45 segundos",
+      manPct: 100, pyPct: 3,
+      why: "El scraping automático recorre cientos de páginas sin intervención humana."
+    },
+    {
+      text: "Cambiar el título de UN solo documento",
+      best: "MAN",
+      man: "10 segundos", py: "≈ 20 minutos",
+      manPct: 5, pyPct: 100,
+      why: "Acción única y trivial: abrir el script cuesta más que hacerlo a mano."
+    },
+    {
+      text: "Enviar 300 correos personalizados a distintas personas",
+      best: "PY",
+      man: "≈ 4 horas", py: "3 segundos",
+      manPct: 100, pyPct: 4,
+      why: "Envío masivo con datos variables: el caso de uso estrella de la automatización."
+    },
+    {
+      text: "Copiar un dato de una hoja a otra",
+      best: "MAN",
+      man: "8 segundos", py: "≈ 15 minutos",
+      manPct: 4, pyPct: 100,
+      why: "Operación puntual. Automatizar sin repetición no aporta valor."
+    }
+  ];
+
+  let deck3 = [];
+  let idx3 = 0;
+  let correct3 = 0;
+  let locked3 = false;
+
+  function initReto3(){
+    deck3 = shuffle(SCEN3);
+    idx3 = 0;
+    correct3 = 0;
+    locked3 = false;
+    renderDots3();
+    renderCard3();
+    $("fb3").className = "feedback";
+    $("fb3").innerHTML = "";
+    $("timeWrap3").style.display = "none";
+    $("btnNext3").style.display = "none";
+    $("btnMan3").disabled = false;
+    $("btnPy3").disabled = false;
+    $("bMan3").style.width = "0%";
+    $("bPy3").style.width = "0%";
+  }
+
+  function renderDots3(){
+    const d = $("dots3");
+    d.innerHTML = "";
+    for(let i = 0; i < SCEN3.length; i++){
+      const s = document.createElement("span");
+      s.className = "dot";
+      if(i < idx3){
+        s.classList.add(deck3[i] && deck3[i]._ok ? "done" : "miss");
+      } else if(i === idx3){
+        s.classList.add("now");
+      }
+      d.appendChild(s);
+    }
+  }
+
+  function renderCard3(){
+    const c = deck3[idx3];
+    $("qLabel3").textContent = "Escenario " + (idx3 + 1) + " de " + deck3.length;
+    $("qText3").textContent = c.text;
+    $("quiz3").style.animation = "none";
+    void $("quiz3").offsetWidth;
+    $("quiz3").style.animation = "fade .3s ease";
+  }
+
+  function answer3(choice){
+    if(locked3) return;
+    locked3 = true;
+    $("btnMan3").disabled = true;
+    $("btnPy3").disabled = true;
+
+    const c = deck3[idx3];
+    const ok = (c.best === choice);
+    c._ok = ok;
+    if(ok) correct3++;
+
+    const fb = $("fb3");
+    if(ok){
+      fb.className = "feedback good show";
+      fb.innerHTML = "<b>✔ Decisión eficiente.</b> " + c.why;
+    } else {
+      fb.className = "feedback bad show";
+      fb.innerHTML = "<b>✕ La mejor opción era " +
+        (c.best === "PY" ? "Modo Python" : "Modo Manual") + ".</b> " + c.why;
+    }
+
+    // Panel de tiempos
+    $("tMan3").textContent = c.man;
+    $("tPy3").textContent  = c.py;
+    $("timeWrap3").style.display = "block";
+    $("bMan3").style.width = "0%";
+    $("bPy3").style.width = "0%";
+    setTimeout(() => {
+      $("bMan3").style.width = c.manPct + "%";
+      $("bPy3").style.width = c.pyPct + "%";
+    }, 60);
+
+    renderDots3();
+
+    const btn = $("btnNext3");
+    btn.style.display = "flex";
+    btn.textContent = (idx3 < deck3.length - 1)
+      ? "Siguiente escenario ▸"
+      : "Ver resultados finales ▸";
+  }
+
+  $("btnMan3").addEventListener("click", () => answer3("MAN"));
+  $("btnPy3").addEventListener("click", () => answer3("PY"));
+
+  $("btnNext3").addEventListener("click", () => {
+    idx3++;
+    if(idx3 < deck3.length){
+      locked3 = false;
+      $("btnMan3").disabled = false;
+      $("btnPy3").disabled = false;
+      $("fb3").className = "feedback";
+      $("fb3").innerHTML = "";
+      $("timeWrap3").style.display = "none";
+      $("btnNext3").style.display = "none";
+      renderDots3();
+      renderCard3();
+    } else {
+      finishReto3();
+    }
+  });
+
+  function finishReto3(){
+    state.r3.correct = correct3;
+    state.r3.pts = Math.round((correct3 / SCEN3.length) * PESO_R3);
+    setProgress(100);
+    renderResults();
+    goTo("screen-resultados");
+  }
+
+  /* =========================================================
+     RESULTADOS
+     ========================================================= */
+  function renderResults(){
+    const total = state.r1.pts + state.r2.pts + state.r3.pts;
+
+    $("scoreNum").innerHTML = total + '<small>/100</small>';
+
+    let msg = "";
+    if(total >= 90){
+      msg = "🏆 <b>Excelente.</b> Dominás la traducción de pseudocódigo a Python, la regla de los 4 espacios y la separación cerebro/esqueleto.";
+    } else if(total >= 70){
+      msg = "👏 <b>Muy buen trabajo.</b> Tenés la lógica clara; repasá los detalles de indentación y cuándo conviene automatizar.";
+    } else if(total >= 50){
+      msg = "📘 <b>Vas por buen camino.</b> Releé el material: la indentación reemplaza al FinSi y Python no compite con HTML, lo complementa.";
+    } else {
+      msg = "🔁 <b>Necesitás repasar.</b> Volvé al material «Anatomía de Python» y reintentá los retos: la continuidad lógica ya la tenés.";
+    }
+    $("scoreMsg").innerHTML = msg;
+
+    const items = [
+      { n: "01", name: "Estructura e Indentación", r: state.r1, max: PESO_R1 },
+      { n: "02", name: "Cerebro vs. Esqueleto",    r: state.r2, max: PESO_R2 },
+      { n: "03", name: "Automatización vs. Manual", r: state.r3, max: PESO_R3 }
+    ];
+
+    const ul = $("breakdown");
+    ul.innerHTML = "";
+    items.forEach(it => {
+      const pct = it.r.pts / it.max;
+      const cls = pct >= 0.8 ? "ok" : (pct >= 0.5 ? "mid" : "bad");
+      const li = document.createElement("li");
+      li.innerHTML =
+        '<div class="bd-icon ' + cls + '">' + it.n + '</div>' +
+        '<div class="bd-text">' +
+          '<b>' + it.name + '</b>' +
+          '<span>' + it.r.correct + '/' + it.r.total + ' respuestas correctas</span>' +
+        '</div>' +
+        '<div class="bd-pts">' + it.r.pts + '/' + it.max + '</div>';
+      ul.appendChild(li);
+    });
+  }
+
+  /* --- Contador de caracteres de la conclusión --- */
+  $("inpConclusion").addEventListener("input", function(){
+    state.conclusion = this.value;
+    $("charCount").textContent = this.value.length;
+  });
+
+  /* =========================================================
+     GENERACIÓN Y DESCARGA DEL INFORME .DOC
+     ========================================================= */
+  function sanitize(str){
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .substring(0, 40);
+  }
+
+  function buildDocHtml(){
+    const total = state.r1.pts + state.r2.pts + state.r3.pts;
+    const fecha = new Date();
+    const fechaStr = fecha.toLocaleDateString("es-AR", {
+      day: "2-digit", month: "2-digit", year: "numeric"
+    });
+    const horaStr = fecha.toLocaleTimeString("es-AR", {
+      hour: "2-digit", minute: "2-digit"
+    });
+
+    const conclusion = (state.conclusion || "").trim() ||
+      "(El alumno no registró una conclusión personal.)";
+
+    const fila = (n, nombre, r, max) =>
+      '<tr>' +
+        '<td style="border:1px solid #999;padding:7px;text-align:center;">' + n + '</td>' +
+        '<td style="border:1px solid #999;padding:7px;">' + nombre + '</td>' +
+        '<td style="border:1px solid #999;padding:7px;text-align:center;">' +
+          r.correct + ' / ' + r.total +
+        '</td>' +
+        '<td style="border:1px solid #999;padding:7px;text-align:center;font-weight:bold;">' +
+          r.pts + ' / ' + max +
+        '</td>' +
+      '</tr>';
+
+    let nivel = "";
+    if(total >= 90) nivel = "Sobresaliente";
+    else if(total >= 70) nivel = "Muy bueno";
+    else if(total >= 50) nivel = "Aprobado";
+    else nivel = "A recuperar";
+
+    return '' +
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+          'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+          'xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head>' +
+      '<meta charset="utf-8">' +
+      '<title>Informe - Anatomía de Python</title>' +
+      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>' +
+      '<w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->' +
+      '<style>' +
+        '@page { size: A4; margin: 2cm 2cm 2cm 2cm; }' +
+        'body { font-family: Calibri, Arial, Helvetica, sans-serif; font-size: 11pt; color:#111; line-height:1.45; }' +
+        'h1 { font-size: 19pt; color:#0b4f6c; margin:0 0 2pt 0; }' +
+        'h2 { font-size: 13pt; color:#0b4f6c; margin:18pt 0 6pt 0; border-bottom:1.5pt solid #0b4f6c; padding-bottom:3pt; }' +
+        'p  { margin:5pt 0; }' +
+        '.sub { font-size:10.5pt; color:#555; margin:0 0 4pt 0; }' +
+        '.meta { background:#f2f7fa; border:1pt solid #b8d4e0; padding:10pt; margin:12pt 0; }' +
+        '.meta td { padding:3pt 6pt; font-size:11pt; }' +
+        'table.data { border-collapse:collapse; width:100%; margin-top:6pt; }' +
+        'table.data th { background:#0b4f6c; color:#fff; border:1px solid #999; padding:7px; font-size:10.5pt; text-align:center; }' +
+        '.concl { background:#fffbe6; border:1pt solid #e0c97f; padding:10pt; font-style:italic; }' +
+        '.foot { margin-top:26pt; font-size:9pt; color:#777; border-top:1pt solid #ccc; padding-top:6pt; }' +
+        '.badge { display:inline-block; padding:3pt 10pt; background:#0b4f6c; color:#fff; font-weight:bold; font-size:12pt; }' +
+      '</style>' +
+    '</head>' +
+    '<body>' +
+
+      '<h1>Informe de Actividad — Anatomía de Python</h1>' +
+      '<p class="sub">Simulador interactivo · Software I · 3° año</p>' +
+
+      '<div class="meta">' +
+        '<table>' +
+          '<tr><td width="30%"><b>Alumno/a:</b></td><td>' + esc(state.nombre) + '</td></tr>' +
+          '<tr><td><b>Curso / División:</b></td><td>' + esc(state.curso) + '</td></tr>' +
+          '<tr><td><b>Fecha:</b></td><td>' + fechaStr + ' — ' + horaStr + ' hs</td></tr>' +
+          '<tr><td><b>Puntaje final:</b></td><td><b>' + total + ' / 100 puntos</b> &nbsp;(' + nivel + ')</td></tr>' +
+        '</table>' +
+      '</div>' +
+
+      '<h2>1. Marco teórico trabajado</h2>' +
+      '<p>El simulador se basa en el material <i>«Anatomía de Python: de la lógica fundamental ' +
+      'a la arquitectura real en la industria web y la automatización»</i>, que establece:</p>' +
+      '<ul>' +
+        '<li><b>Continuidad:</b> el pseudocódigo se traduce directamente; la lógica previa ya es válida.</li>' +
+        '<li><b>Estructura:</b> Python elimina <i>FinSi</i> / <i>FinMientras</i> y los reemplaza por ' +
+            'indentación obligatoria de 4 espacios.</li>' +
+        '<li><b>Legibilidad:</b> tipado dinámico y diseño centrado en la lectura humana.</li>' +
+        '<li><b>Versatilidad:</b> lenguaje multiparadigma (estructurada, orientada a objetos, funcional).</li>' +
+        '<li><b>Industria:</b> domina el backend (Instagram, Spotify, Netflix, YouTube) y la automatización.</li>' +
+        '<li><b>Regla de oro:</b> Python (cerebro / lógica) ≠ HTML (esqueleto / visual), pero se integran ' +
+            'funcionalmente en el ciclo de petición HTTP.</li>' +
+      '</ul>' +
+
+      '<h2>2. Resultados por reto</h2>' +
+      '<table class="data">' +
+        '<tr>' +
+          '<th width="10%">N°</th>' +
+          '<th>Reto</th>' +
+          '<th width="22%">Respuestas correctas</th>' +
+          '<th width="20%">Puntaje</th>' +
+        '</tr>' +
+        fila("01", "Estructura e Indentación (ordenar líneas Python aplicando 4 espacios)", state.r1, PESO_R1) +
+        fila("02", "Cerebro vs. Esqueleto (clasificar Python / HTML)", state.r2, PESO_R2) +
+        fila("03", "Automatización vs. Modo Manual (decidir estrategia eficiente)", state.r3, PESO_R3) +
+        '<tr>' +
+          '<td colspan="3" style="border:1px solid #999;padding:7px;text-align:right;"><b>TOTAL</b></td>' +
+          '<td style="border:1px solid #999;padding:7px;text-align:center;"><b>' + total + ' / 100</b></td>' +
+        '</tr>' +
+      '</table>' +
+
+      '<h2>3. Detalle de las decisiones tomadas</h2>' +
+      '<p><b>Reto 1 — Código Python construido por el alumno:</b></p>' +
+      '<p style="font-family:Consolas,\'Courier New\',monospace; font-size:10pt; ' +
+         'background:#f5f5f5; border:1pt solid #ddd; padding:9pt; white-space:pre;">' +
+        'valor1 = float(input("Valor 1: "))<br>' +
+        'valor2 = float(input("Valor 2: "))<br>' +
+        'if valor1 &gt; valor2:<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;resultado = valor1 - valor2<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;print(f"Diferencia: {resultado}")<br>' +
+        'else:<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;resultado = valor2 - valor1<br>' +
+        '&nbsp;&nbsp;&nbsp;&nbsp;print(f"Diferencia: {resultado}")' +
+      '</p>' +
+      '<p>Se verificó la correcta aplicación de la <b>indentación de 4 espacios</b> dentro de los ' +
+      'bloques <i>if</i> y <i>else</i>, reemplazando el cierre explícito <i>FinSi</i> del pseudocódigo.</p>' +
+
+      '<p><b>Reto 2 — Integración funcional Python / HTML:</b> El alumno clasificó conceptos ' +
+      'distinguiendo el rol del <b>backend</b> (Python: procesar datos, tomar decisiones, consultar ' +
+      'bases de datos, procesar pagos) frente al <b>frontend</b> (HTML: estructura visual, etiquetas, ' +
+      'presentación estática en el navegador).</p>' +
+
+      '<p><b>Reto 3 — Criterio de automatización:</b> El alumno evaluó cuándo conviene escribir un ' +
+      'script de Python (tareas repetitivas y masivas: renombrar cientos de archivos, web scraping, ' +
+      'envío masivo de correos) y cuándo es más eficiente el modo manual (acciones únicas y triviales), ' +
+      'comprendiendo que automatizar sin repetición es sobre-ingeniería.</p>' +
+
+      '<h2>4. Conclusión personal del alumno</h2>' +
+      '<div class="concl">' + esc(conclusion) + '</div>' +
+
+      '<h2>5. Valoración final</h2>' +
+      '<p><span class="badge">' + total + ' / 100 — ' + nivel + '</span></p>' +
+      '<p>' + (total >= 70
+        ? 'El alumno demuestra comprender la continuidad lógica entre pseudocódigo y Python, ' +
+          'la obligatoriedad de la indentación como estructura sintáctica y la complementariedad ' +
+          'entre backend y frontend en el desarrollo web real.'
+        : 'Se recomienda al alumno revisar el material teórico «Anatomía de Python» y repetir el ' +
+          'simulador, prestando especial atención a la regla de los 4 espacios, a la diferencia entre ' +
+          'lenguaje de programación y lenguaje de marcado, y al criterio de automatización.') +
+      '</p>' +
+
+      '<div class="foot">' +
+        'Informe generado automáticamente por el simulador «Anatomía de Python» · ' +
+        'Software I · ' + fechaStr + ' ' + horaStr + ' hs.<br>' +
+        'Documento válido como evidencia de trabajo práctico para su carga en Google Classroom.' +
+      '</div>' +
+
+    '</body></html>';
+  }
+
+  function descargarInforme(){
+    try{
+      const html = buildDocHtml();
+      const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
+
+      const nombreArch = "Informe_Python_" +
+        sanitize(state.nombre || "Alumno") + "_" +
+        sanitize(state.curso || "Curso") + ".doc";
+
+      // Método 1: ObjectURL + anchor (funciona en Chrome Android)
+      if(window.navigator && window.navigator.msSaveOrOpenBlob){
+        window.navigator.msSaveOrOpenBlob(blob, nombreArch);
+        showToast("✔ Informe descargado");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombreArch;
+      a.rel = "noopener";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 4000);
+
+      showToast("✔ Informe .doc descargado en /Descargas");
+    }catch(err){
+      console.error(err);
+      showToast("⚠ No se pudo generar el archivo");
+    }
+  }
+
+  $("btnDownload").addEventListener("click", descargarInforme);
+
+  /* =========================================================
+     REINICIO TOTAL
+     ========================================================= */
+  $("btnRestart").addEventListener("click", () => {
+    state.nombre = "";
+    state.curso = "";
+    state.conclusion = "";
+    state.r1 = { correct: 0, total: 8, pts: 0 };
+    state.r2 = { correct: 0, total: 8, pts: 0 };
+    state.r3 = { correct: 0, total: 6, pts: 0 };
+
+    $("inpNombre").value = "";
+    $("inpCurso").value = "";
+    $("inpConclusion").value = "";
+    $("charCount").textContent = "0";
+
+    setProgress(0);
+    goTo("screen-registro");
+  });
+
+  /* =========================================================
+     INICIALIZACIÓN
+     ========================================================= */
+  setProgress(0);
+
+  // Evita el zoom por doble toque en Android
+  let lastTouch = 0;
+  document.addEventListener("touchend", function(e){
+    const now = Date.now();
+    if(now - lastTouch <= 300){
+      e.preventDefault();
+    }
+    lastTouch = now;
+  }, { passive: false });
+
+})();
+</script>
+</body>
+</html>
